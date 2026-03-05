@@ -1,7 +1,12 @@
 import requests
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
-API_KEY = "aD93zwvycv/KXaeinhzzWMo99xljl3y707e2wd0oIa1sWl8dC615g/Gb1rH2apT4"
+env_path = 'config/keys.env'
+load_dotenv(dotenv_path=env_path)
+
+API_KEY = os.getenv('CFB_API_KEY')
 BASE_URL = "https://api.collegefootballdata.com"
 
 headers = {
