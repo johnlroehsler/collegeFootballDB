@@ -144,6 +144,12 @@ ENV/
 env.bak/
 venv.bak/
 
+# Ignore secret env files
+keys.env
+
+# Allow example env file
+!example.env
+
 # Spyder project settings
 .spyderproject
 .spyproject
