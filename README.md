@@ -26,11 +26,9 @@ AWS_DEFAULT_REGION=example
 S3_BUCKET_NAME=example
 
 How to run:
-To test API and store in local and s3, run 
-python src/ingestion/test_ingestion.py
+To test API and store in local and s3, run: python src/ingestion/test_ingestion.py
 
-To test retrival from S3
-python src/processing/test_pull.py
+To test retrival from S3 run: python src/processing/test_pull.py
 
 Current status:
 Curently, API authentical and data retrival from CollegeFootballData.org API work. Data is stored locally and in AWS S3. Project directory is also setup. Batch processing pipeline: JSON ingestion to Parquet conversion to aggregation is still in development as well as MapReduce pattern for aggregations, and lazy evaluation with optimized DAG execution.
