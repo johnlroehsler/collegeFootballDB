@@ -31,4 +31,4 @@ To test API and store in local and s3, run: python src/ingestion/test_ingestion.
 To test retrival from S3 run: python src/processing/test_pull.py
 
 Current status:
-Curently, API authentical and data retrival from CollegeFootballData.org API work. Data is stored locally and in AWS S3. Project directory is also setup. Batch processing pipeline: JSON ingestion to Parquet conversion to aggregation is still in development as well as MapReduce pattern for aggregations, and lazy evaluation with optimized DAG execution.
+Curently, API is authenticated and data retrival is possible from CollegeFootballData.org API. Data is stored locally and in AWS S3. Project directory is also setup. Batch processing pipeline: JSON ingestion to Parquet conversion to aggregation is still in development as well as MapReduce pattern for aggregations, and lazy evaluation with optimized DAG execution.
