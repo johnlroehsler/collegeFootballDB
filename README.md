@@ -18,7 +18,7 @@ Run this command: pip install -r requirements.txt
 
 Enviorment setup:
 Navigate to the config directory
-Create a copy of example.env and add your API keys
+Create a copy of example.env and add your API keys:
 CFB_API_KEY=example
 AWS_ACCESS_KEY_ID=example
 AWS_SECRET_ACCESS_KEY=example
