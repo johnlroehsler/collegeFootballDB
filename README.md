@@ -1,7 +1,7 @@
-CollegeFootballDB:
+# CollegeFootballDB:
 A distributed analytics platform for processing and querying SEC football play-by-play data (2021–2025). Built for CS 4265: Big Data Analytics.
 
-Description:
+## Description:
 This project proposes a distributed analytics platform for processing and querying of SEC football data from
 2021–2025. The system addresses the scale challenges of analyzing
 tens of thousands of plays across multiple seasons, demonstrating
@@ -26,7 +26,7 @@ AWS_DEFAULT_REGION=example
 S3_BUCKET_NAME=example
 
 How to run:
-To test API and store in local and s3, run: python src/ingestion/test_ingestion.py
+- To test API and store in local and s3, run: python src/ingestion/test_ingestion.py
 
 To test retrieval from S3 run: python src/processing/test_pull.py
 
