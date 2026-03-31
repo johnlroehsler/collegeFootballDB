@@ -107,7 +107,7 @@ def upload_to_s3(data: list, year: int, week: int, team: str, s3_client) -> bool
             Body=json.dumps(data),
             ContentType="application/json",
         )
-        log.info(f"    Uploaded to s3://{BUCKET_NAME}/{s3_key}")
+        log.info(f"Uploaded to s3://{BUCKET_NAME}/{s3_key}")
         return True
     except (BotoCoreError, ClientError) as e:
         log.error(f"S3 upload failed: {e}")
@@ -122,7 +122,7 @@ def main():
     stats = {"success": 0, "empty": 0, "failed": 0}
 
     total = len(SEC_TEAMS) * len(SEASONS) * len(WEEKS)
-    log.info(f"Starting SEC ingestion: {len(SEC_TEAMS)} teams × "
+    log.info(f"Starting SEC ingestion: {len(SEC_TEAMS)} teams"
              f"{len(list(SEASONS))} seasons × {len(list(WEEKS))} weeks = {total} requests\n")
 
     for year in SEASONS:
@@ -148,9 +148,9 @@ def main():
 
     log.info(
         f"\nIngestion completed \n"
-        f"  Success  : {stats['success']}\n"
-        f"  Empty    : {stats['empty']}\n"
-        f"  Failed   : {stats['failed']}\n"
+        f"Success  : {stats['success']}\n"
+        f"Empty    : {stats['empty']}\n"
+        f"Failed   : {stats['failed']}\n"
     )
 
 
