@@ -1,39 +1,27 @@
-"""
-query.py — Spark SQL query interface for CollegeFootballDB.
-
-Reads team_game_stats.parquet from S3 and runs analytical queries
-against the processed stats using Spark SQL with predicate pushdown.
-
-Usage:
-    python src/queries/query.py                  # all queries
-    python src/queries/query.py --team Georgia   # filter to one team
-    python src/queries/query.py --season 2024    # filter to one season
-"""
-
 import argparse
 import os
 import sys
 
 from dotenv import load_dotenv
 
+# Config
 load_dotenv(dotenv_path="config/keys.env")
-
 sys.path.insert(0, "src/processing")
 from spark_session import get_spark
-
 BUCKET    = os.getenv("S3_BUCKET_NAME")
 STATS_PATH = f"s3a://{BUCKET}/stats/team_game_stats.parquet"
-
 DIVIDER = "-" * 60
 
-
+# Main function to execute analytics queries against the loaded data
 def run_queries(team: str = None, season: str = None):
     if not BUCKET:
         sys.exit("ERROR: S3_BUCKET_NAME not set. Create config/keys.env from config/example.env.")
-
+    
+    # Initialize a Spark session specifically for running queries
     spark = get_spark("Queries")
     spark.sparkContext.setLogLevel("WARN")
 
+    # Load the processed game stats from S3 into a PySpark DataFrame
     print(f"\nReading: {STATS_PATH}")
     df = spark.read.parquet(STATS_PATH)
 
@@ -45,17 +33,16 @@ def run_queries(team: str = None, season: str = None):
 
     df.createOrReplaceTempView("stats")
     print(f"Rows loaded: {df.count():,}")
+    # Output the total number of rows matching the filters
     if team:
         print(f"Filter: team = {team}")
     if season:
         print(f"Filter: season = {season}")
 
-    # ------------------------------------------------------------------
-    # Q1: Average offensive stats per team per season
-    # ------------------------------------------------------------------
     print(f"\n{DIVIDER}")
     print("Q1: Avg offensive stats by team and season")
     print(DIVIDER)
+    # Q1: Group by team and season to calculate average offensive performance metrics
     spark.sql("""
         SELECT
             team,
@@ -70,12 +57,10 @@ def run_queries(team: str = None, season: str = None):
         ORDER BY season, avg_ypp DESC
     """).show(50, truncate=False)
 
-    # ------------------------------------------------------------------
-    # Q2: Year-over-year offensive trends across the SEC
-    # ------------------------------------------------------------------
     print(f"\n{DIVIDER}")
     print("Q2: SEC-wide offensive trends by season")
     print(DIVIDER)
+    # Q2: Group purely by season to view league wide average trends over time
     spark.sql("""
         SELECT
             season,
@@ -89,12 +74,10 @@ def run_queries(team: str = None, season: str = None):
         ORDER BY season
     """).show(truncate=False)
 
-    # ------------------------------------------------------------------
-    # Q3: Top 10 single-game offensive performances (yards per play)
-    # ------------------------------------------------------------------
     print(f"\n{DIVIDER}")
     print("Q3: Top 10 single-game offensive performances (yards per play)")
     print(DIVIDER)
+    # Q3: Find the top 10 individual game performances ranked by highest yards per play
     spark.sql("""
         SELECT
             team,
@@ -110,12 +93,10 @@ def run_queries(team: str = None, season: str = None):
         LIMIT 10
     """).show(truncate=False)
 
-    # ------------------------------------------------------------------
-    # Q4: Third-down conversion rate by team (career average)
-    # ------------------------------------------------------------------
     print(f"\n{DIVIDER}")
     print("Q4: Third-down conversion rate by team (all seasons)")
     print(DIVIDER)
+    # Q4: Aggregate historical third down conversion success rates for each team
     spark.sql("""
         SELECT
             team,
@@ -129,12 +110,11 @@ def run_queries(team: str = None, season: str = None):
         ORDER BY avg_3rd_pct DESC
     """).show(truncate=False)
 
-    # ------------------------------------------------------------------
-    # Q5: Home vs. away performance split
-    # ------------------------------------------------------------------
+
     print(f"\n{DIVIDER}")
     print("Q5: Home vs. away offensive splits")
     print(DIVIDER)
+    # Q5: Compare overall offensive averages when playing at home versus away
     spark.sql("""
         SELECT
             is_home,
@@ -148,12 +128,11 @@ def run_queries(team: str = None, season: str = None):
         ORDER BY is_home DESC
     """).show(truncate=False)
 
-    # ------------------------------------------------------------------
-    # Q6: Big-play rate by team and season
-    # ------------------------------------------------------------------
+
     print(f"\n{DIVIDER}")
     print("Q6: Big-play rate (>=20 yards) by team and season")
     print(DIVIDER)
+    # Q6: Calculate the frequency of explosive plays per team over each season
     spark.sql("""
         SELECT
             team,
@@ -170,11 +149,11 @@ def run_queries(team: str = None, season: str = None):
     spark.stop()
     print("\nQueries complete.")
 
-
+# CLI entry point to parse optional team and season filtering arguments
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CollegeFootballDB query interface")
-    parser.add_argument("--team",   default=None, help="Filter to a single team (e.g. Georgia)")
-    parser.add_argument("--season", default=None, help="Filter to a single season year (e.g. 2024)")
+    parser.add_argument("--team",   default=None, help="Filter to a single team (ex Georgia)")
+    parser.add_argument("--season", default=None, help="Filter to a single season year (ex 2024)")
     args = parser.parse_args()
 
     run_queries(team=args.team, season=args.season)
