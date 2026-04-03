@@ -97,6 +97,18 @@ def get_plays(year: int, week: int, team: str) -> Optional[list]:
     log.error(f"All {MAX_RETRIES} retries exhausted for {team} {year} W{week}.")
     return None   # signals a hard failure
 
+# Checks if data exists in s3 already
+def s3_key_exists(year: int, week: int, team: str, s3_client) -> bool:
+    s3_key = f"raw/year={year}/week={week}/{team.replace(' ', '_')}_plays.json"
+    try:
+        s3_client.head_object(Bucket=BUCKET_NAME, Key=s3_key)
+        return True
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            return False
+        raise
+
+
 # Upload to S3
 def upload_to_s3(data: list, year: int, week: int, team: str, s3_client) -> bool:
     s3_key = f"raw/year={year}/week={week}/{team.replace(' ', '_')}_plays.json"
@@ -119,7 +131,7 @@ def main():
 
     s3_client = boto3.client("s3")
 
-    stats = {"success": 0, "empty": 0, "failed": 0}
+    stats = {"success": 0, "skipped": 0, "empty": 0, "failed": 0}
 
     total = len(SEC_TEAMS) * len(SEASONS) * len(WEEKS)
     log.info(f"Starting SEC ingestion: {len(SEC_TEAMS)} teams"
@@ -128,6 +140,11 @@ def main():
     for year in SEASONS:
         for week in WEEKS:
             for team in SEC_TEAMS:
+                if s3_key_exists(year, week, team, s3_client):
+                    log.info(f"SKIP {team} | {year} W{week}  (already in S3)")
+                    stats["skipped"] += 1
+                    continue
+
                 plays = get_plays(year, week, team)
 
                 if plays is None:
@@ -148,6 +165,7 @@ def main():
 
     log.info(
         f"\nIngestion completed \n"
+        f"Skipped  : {stats['skipped']} (already in S3)\n"
         f"Success  : {stats['success']}\n"
         f"Empty    : {stats['empty']}\n"
         f"Failed   : {stats['failed']}\n"
