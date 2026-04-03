@@ -22,7 +22,7 @@ CLOCK_SCHEMA = StructType([
     StructField("seconds", IntegerType(), nullable=True),
 ])
 
-# Explicit schema definition for play by play data
+# Explicit schema for play by play data
 PLAYS_SCHEMA = StructType([
     StructField("gameId",             LongType(),      nullable=False),
     StructField("driveId",            StringType(),    nullable=True),
