@@ -7,22 +7,22 @@ from pyspark.sql.types import (
     LongType, IntegerType, StringType, BooleanType, DoubleType, TimestampType,
 )
 
+# Config 
 sys.path.insert(0, os.path.dirname(__file__))
 from spark_session import get_spark
-
 from dotenv import load_dotenv
 load_dotenv(dotenv_path="config/keys.env")
-
 BUCKET      = os.getenv("S3_BUCKET_NAME")
 RAW_BASE    = f"s3a://{BUCKET}/raw"
 PROCESSED   = f"s3a://{BUCKET}/processed"
 
-
+# Schema for the game clock
 CLOCK_SCHEMA = StructType([
     StructField("minutes", IntegerType(), nullable=True),
     StructField("seconds", IntegerType(), nullable=True),
 ])
 
+# Explicit schema definition for play by play data
 PLAYS_SCHEMA = StructType([
     StructField("gameId",             LongType(),      nullable=False),
     StructField("driveId",            StringType(),    nullable=True),
@@ -43,13 +43,13 @@ PLAYS_SCHEMA = StructType([
     StructField("defenseTimeouts",    IntegerType(),   nullable=True),
     StructField("yardline",           IntegerType(),   nullable=True),
     StructField("yardsToGoal",        IntegerType(),   nullable=True),
-    StructField("down",               IntegerType(),   nullable=True),   # null for special teams
-    StructField("distance",           IntegerType(),   nullable=True),   # null for special teams
+    StructField("down",               IntegerType(),   nullable=True),
+    StructField("distance",           IntegerType(),   nullable=True),   
     StructField("yardsGained",        IntegerType(),   nullable=True),
     StructField("scoring",            BooleanType(),   nullable=True),
     StructField("playType",           StringType(),    nullable=True),
     StructField("playText",           StringType(),    nullable=True),
-    StructField("ppa",                DoubleType(),    nullable=True),   # null for non-scrimmage plays
+    StructField("ppa",                DoubleType(),    nullable=True),  
     StructField("wallclock",          StringType(),    nullable=True),
 ])
 
@@ -57,6 +57,7 @@ def convert(spark: SparkSession, season: str = "*") -> int:
     raw_glob = f"{RAW_BASE}/year={season}/week=*/*.json"
     print(f"\nReading: {raw_glob}")
 
+    # Read raw JSON data using the schema
     df = (
         spark.read
         .option("basePath", RAW_BASE)       
@@ -65,7 +66,7 @@ def convert(spark: SparkSession, season: str = "*") -> int:
         .schema(PLAYS_SCHEMA)
         .json(raw_glob)
     )
-
+    # Standardize column names and cast string times to Timestamps
     df = (
         df
         .withColumnRenamed("year", "season")
@@ -74,14 +75,14 @@ def convert(spark: SparkSession, season: str = "*") -> int:
 
     row_count = df.count()
     print(f"Rows read: {row_count:,}")
-
+    # Identify and count records that failed schema check
     corrupt = df.filter(F.col("_corrupt_record").isNotNull()).count() if "_corrupt_record" in df.columns else 0
     if corrupt:
         print(f"WARNING: {corrupt:,} corrupt/unparseable records skipped")
 
     if "_corrupt_record" in df.columns:
         df = df.drop("_corrupt_record")
-
+    # Write cleaned dataframe back to S3 as Parquet files
     (
         df.write
         .mode("overwrite")
@@ -94,6 +95,7 @@ def convert(spark: SparkSession, season: str = "*") -> int:
     return row_count
 
 def verify(spark: SparkSession):
+    # Load the Parquet files
     print(f"\nVerifying: {PROCESSED}")
     df = spark.read.parquet(PROCESSED)
 
@@ -103,6 +105,7 @@ def verify(spark: SparkSession):
     total = df.count()
     print(f"Total rows: {total:,}")
 
+    # Display an aggregated count of plays to verify 
     print("\nRow counts by season and week:")
     (
         df.groupBy("season", "week")
@@ -110,16 +113,18 @@ def verify(spark: SparkSession):
         .orderBy("season", "week")
         .show(50, truncate=False)
     )
-
+    # Sample 
     print("Sample plays (5 rows):")
     df.select("season", "week", "gameId", "offense", "defense",
               "playType", "yardsGained", "ppa").show(5, truncate=False)
 
 if __name__ == "__main__":
+    # Checks if bucket exists 
     if not BUCKET:
         sys.exit("ERROR: S3_BUCKET_NAME not set. Create config/keys.env from config/example.env.")
 
-    season = sys.argv[1] if len(sys.argv) > 1 else "*"
+    # Does all seasons
+    season = "*"
 
     spark = get_spark("JSON_to_Parquet")
     spark.sparkContext.setLogLevel("WARN")
