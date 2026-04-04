@@ -1,10 +1,10 @@
 # CollegeFootballDB
 
-A distributed analytics platform for processing and querying SEC football play-by-play data (2021–2025). Built for CS 4265: Big Data Analytics.
+A distributed analytics platform for processing and querying SEC football play by play data (2021–2025). Built for CS 4265: Big Data Analytics.
 
 ## Overview
 
-Ingests play-by-play data from the CollegeFootballData.org API for all 14 SEC teams across 5 seasons, stores raw JSON in S3, converts to Parquet via Apache Spark, aggregates per-game offensive statistics using a MapReduce pattern, and exposes results through a Spark SQL query interface.
+Ingests play by play data from the CollegeFootballData.org API for all 14 SEC teams across 5 seasons, stores raw JSON in S3, converts to Parquet via Apache Spark, aggregates per-game offensive statistics using a MapReduce pattern, and exposes results through a Spark SQL query interface.
 
 **Data source:** [CollegeFootballData.org API](https://api.collegefootballdata.com)  
 **Teams:** 14 SEC teams (2021–2025, weeks 1–15)  
@@ -67,9 +67,9 @@ The pipeline runs three stages in sequence:
 
 | Stage | Script | Description |
 |-------|--------|-------------|
-| 1 — Ingest | `src/ingestion/ingest.py` | Fetches play-by-play JSON from API, uploads to `s3://{bucket}/raw/` |
+| 1 — Ingest | `src/ingestion/ingest.py` | Fetches play by play JSON from API, uploads to `s3://{bucket}/raw/` |
 | 2 — Convert | `src/processing/json_to_parquet.py` | Converts raw JSON to Snappy Parquet, partitioned by season/week |
-| 3 — Aggregate | `src/processing/aggregate_stats.py` | MapReduce aggregation to per-game team stats |
+| 3 — Aggregate | `src/processing/aggregate_stats.py` | MapReduce aggregation to per game team stats |
 
 A summary is printed at the end:
 
@@ -90,19 +90,19 @@ Logs are written to `pipeline.log`.
 ## Querying the Output
 
 ```bash
-python src/queries/query.py                   # run all queries
-python src/queries/query.py --team Georgia    # filter to one team
-python src/queries/query.py --season 2024     # filter to one season
+python src/queries/query.py                  
+python src/queries/query.py --team Georgia    
+python src/queries/query.py --season 2024    
 ```
 
 Runs 6 Spark SQL queries against `team_game_stats.parquet`:
 
 - Avg yards/play, success rate, 3rd-down %, and PPA by team and season
-- SEC-wide year-over-year offensive trends
-- Top 10 single-game offensive performances
-- Third-down conversion rate by team
-- Home vs. away performance split
-- Big-play rate (≥20 yards) by team and season
+- SEC-wide year over year offensive trends
+- Top 10 single game offensive performances
+- Third down conversion rate by team
+- Home vs away performance split
+- Big play rate (≥20 yards) by team and season
 
 ---
 
@@ -134,18 +134,18 @@ collegeFootballDB/
 │   ├── ingestion/
 │   │   └── ingest.py             # Stage 1: API → S3
 │   ├── processing/
-│   │   ├── spark_session.py      # SparkSession factory (S3A + Java 17)
-│   │   ├── json_to_parquet.py    # Stage 2: JSON → Parquet
+│   │   ├── spark_session.py      # SparkSession factory
+│   │   ├── json_to_parquet.py    # Stage 2: JSON to Parquet
 │   │   ├── aggregate_stats.py    # Stage 3: MapReduce aggregation
 │   │   ├── smoke_spark.py        # Spark/S3 connectivity test
-│   │   └── pull.py               # S3 fetch utility (debug)
+│   │   └── pull.py               # S3 fetch utility 
 │   └── queries/
 │       └── query.py              # Spark SQL query interface
 ├── scripts/
 │   └── info.py                   # API quota checker
-├── run_pipeline.py               # End-to-end pipeline orchestrator
+├── run_pipeline.py               # End to end pipeline orchestrator
 ├── requirements.txt
-└── pipeline.log                  # Runtime log (generated on first run)
+└── pipeline.log                  # Runtime log 
 ```
 
 ---
