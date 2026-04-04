@@ -1,5 +1,6 @@
 import os
 import json
+import argparse
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
@@ -9,51 +10,101 @@ env_path = 'config/keys.env'
 load_dotenv(dotenv_path=env_path)
 BUCKET_NAME = os.getenv('S3_BUCKET_NAME')
 
-def fetch_from_s3(year, week, team):
-    s3_client = boto3.client('s3')
-    
+
+# Get Raw data
+def fetch_raw(year, week, team):
     s3_key = f"raw/year={year}/week={week}/{team}_plays.json"
-    print(f"Attempting to fetch from S3: s3://{BUCKET_NAME}/{s3_key}\n")
-    
+    print(f"Fetching s3://{BUCKET_NAME}/{s3_key}\n")
+    s3 = boto3.client('s3')
     try:
-        response = s3_client.get_object(
-            Bucket=BUCKET_NAME,
-            Key=s3_key
-        )
-        
-        file_content = response['Body'].read().decode('utf-8')
-        data = json.loads(file_content)
-        return data
-    
-    # Error handling
+        response = s3.get_object(Bucket=BUCKET_NAME, Key=s3_key)
+        data = json.loads(response['Body'].read().decode('utf-8'))
+        print(json.dumps(data[:3], indent=2))
+        print(f"\n... {len(data)} total plays")
     except ClientError as e:
-        if e.response['Error']['Code'] == 'NoSuchKey':
-            print(f"Error: The file '{s3_key}' does not exist in bucket '{BUCKET_NAME}'.")
+        code = e.response['Error']['Code']
+        if code == 'NoSuchKey':
+            print(f"Not found: {s3_key}")
         else:
-            print(f"An S3 error occurred: {e}")
-        return None
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        return None
+            print(f"S3 error: {e}")
+
+
+# Get processed data
+def fetch_processed(season=None, week=None):
+    import sys
+    sys.path.insert(0, os.path.dirname(__file__))
+    from spark_session import get_spark
+
+    path = f"s3a://{BUCKET_NAME}/processed/"
+    print(f"Reading {path}\n")
+    spark = get_spark("pull_processed")
+    spark.sparkContext.setLogLevel("ERROR")
+
+    df = spark.read.parquet(path)
+
+    if season:
+        df = df.filter(df.season == int(season))
+    if week:
+        df = df.filter(df.week == int(week))
+
+    total = df.count()
+    print(f"Total rows (filtered): {total:,}\n")
+    df.show(10, truncate=False)
+    spark.stop()
+
+# Get stats
+def fetch_stats(team=None, season=None):
+    import sys
+    sys.path.insert(0, os.path.dirname(__file__))
+    from spark_session import get_spark
+
+    path = f"s3a://{BUCKET_NAME}/stats/team_game_stats.parquet"
+    print(f"Reading {path}\n")
+    spark = get_spark("pull_stats")
+    spark.sparkContext.setLogLevel("ERROR")
+
+    df = spark.read.parquet(path)
+
+    if team:
+        df = df.filter(df.team == team)
+    if season:
+        df = df.filter(df.season == int(season))
+
+    total = df.count()
+    print(f"Total rows (filtered): {total:,}\n")
+    df.show(10, truncate=False)
+    spark.stop()
+
 
 def main():
-    test_year = 2025
-    test_week = 1
-    test_team = "Georgia"
-    
-    # Fetch the data
-    plays_data = fetch_from_s3(test_year, test_week, test_team)
-    
-    # Print the data if successfully retrieved
-    if plays_data:
-        print("Successfully retrieved data!")
-        print("-" * 40)
-        # Print a formatted JSON string
-        print(json.dumps(plays_data, indent=4))
-        print("-" * 40)
-        print(f"Total plays retrieved: {len(plays_data)}")
-    else:
-        print("No data retrieved from S3.")
+    parser = argparse.ArgumentParser(description="Pull data from S3")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    # raw
+    p_raw = sub.add_parser("raw", help="Fetch a raw JSON file")
+    p_raw.add_argument("year",  type=int)
+    p_raw.add_argument("week",  type=int)
+    p_raw.add_argument("team",  type=str)
+
+    # processed
+    p_proc = sub.add_parser("processed", help="Sample processed Parquet")
+    p_proc.add_argument("--season", type=int, default=None)
+    p_proc.add_argument("--week",   type=int, default=None)
+
+    # stats
+    p_stats = sub.add_parser("stats", help="Sample team_game_stats Parquet")
+    p_stats.add_argument("--team",   type=str, default=None)
+    p_stats.add_argument("--season", type=int, default=None)
+
+    args = parser.parse_args()
+
+    if args.cmd == "raw":
+        fetch_raw(args.year, args.week, args.team)
+    elif args.cmd == "processed":
+        fetch_processed(args.season, args.week)
+    elif args.cmd == "stats":
+        fetch_stats(args.team, args.season)
+
 
 if __name__ == "__main__":
     main()
