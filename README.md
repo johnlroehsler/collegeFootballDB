@@ -35,7 +35,17 @@ On macOS with Homebrew:
 brew install openjdk@17
 ```
 
-On Windows, install [Eclipse Adoptium JDK 17](https://adoptium.net/) and ensure the `hadoop/` directory (included in the repo) is present at the project root -- it provides the Hadoop native binaries (`winutils.exe`) needed for Spark's S3A filesystem.
+On Windows:
+
+1. Install [Eclipse Adoptium JDK 17](https://adoptium.net/)
+2. Set `JAVA_HOME` in an admin PowerShell session (replace the path with your installed version — check with `Get-ChildItem "C:\Program Files\Eclipse Adoptium\"`):
+
+```powershell
+[System.Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot", "Machine")
+```
+
+3. Open a new terminal for the variable to take effect
+4. Ensure the `hadoop/` directory (included in the repo) is present at the project root — it provides the Hadoop native binaries (`winutils.exe`) needed for Spark's S3A filesystem.
 
 ### 3. Configure credentials
 
